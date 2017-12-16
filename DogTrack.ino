@@ -1,3 +1,8 @@
+//mode 0 dog    1 master
+#define master 0
+
+#define BUFFERLENGHT 128
+
 #include <SPI.h> //esp32 to lora chip
 #include <U8x8lib.h> //oled screen
 #include <NMEAGPS.h> //GPS Library
@@ -19,9 +24,6 @@
 #define BAND    433E6
 
 
-//mode of device 0 to dog 1 to master node
-//#define mode 0
-
 //phone to device
 #define BLYNK_PRINT Serial
 #define BLYNK_USE_DIRECT_CONNECT
@@ -42,47 +44,69 @@ WidgetLCD blynkLCD(V0);
 
 //GPS
 //Communication
-//rxPin = 9    //CONFLICT BETWEEN RESET OF OLED 
-//txPin = 10
+//rxPin = 16    //CONFLICT BETWEEN RESET OF OLED 
+//txPin = 17
 HardwareSerial SerialGPS(1);
 //GPS Module
 NMEAGPS gps;
 //Current gps fix
 gps_fix currentFix;
 
+int counter = 0;
+
 
 String receivedText;
 String receivedRssi;
-char stringinfo[128]  = "";
-
+char stringinfo[BUFFERLENGHT];
+char lorabuffer[BUFFERLENGHT];
+char chipid[10];  // 7 from + \0
 
 // the OLED used
 U8X8_SSD1306_128X64_NONAME_SW_I2C u8x8(/* clock=*/ 15, /* data=*/ 4, /* reset=*/ 16);
 
 void setup() {
 
-  //init GPS serial
-  SerialGPS.begin(9600);
-  //trying to connect to gps module
-  while (!SerialGPS);
+  //node identification
+  sprintf(chipid, "%X", ESP.getEfuseMac());//The chip ID is essentially its MAC address(length: 6 bytes).
 
-  //init PC communication
-  Serial.begin(115200);
-  while (!Serial); //if just the the basic function, must connect to a computer
 
-  
   //init LoRa chip and communication
   SPI.begin(5, 19, 27, 18);
   LoRa.setPins(SS, RST, DI0);
 
-  
-  delay(500);
-
+  //int lcd
   u8x8.begin();
   u8x8.setFont(u8x8_font_chroma48medium8_r);
+  
+  
+  if(!master){
+    //Child node code
+    
+    //init GPS serial
+    //SerialGPS.begin(9600);
+    //4 rx 2 tx
+    SerialGPS.begin(9600, SERIAL_8N1, 17, 2, false);
+    //trying to connect to gps module
+    while (!SerialGPS);
+    
+  }else{
+    //Master node code
+    Blynk.begin(auth);
+  }
+  
+  //init PC communication
+  Serial.begin(115200);
+  while (!Serial); //if just the the basic function, must connect to a computer
 
-  Serial.println("LoRa Receiver");
-  u8x8.drawString(0, 1, "LoRa Receiver");
+  delay(500);
+
+  u8x8.drawString(0, 0, "VictoryTracker");
+  u8x8.drawString(0, 3, "An hunter dog...");
+  if(master){
+    u8x8.drawString(0, 6, "MASTER NODE");
+  }else{
+    u8x8.drawString(0, 6, "SLAVE NODE");
+  }
 
   if (!LoRa.begin(BAND)) {
     Serial.println("Starting LoRa failed!");
@@ -90,45 +114,82 @@ void setup() {
     while (1);
   }
 
-  Blynk.begin(auth);
+  delay(1000);
+  u8x8.clear();
+
 }
 
 void loop() {
 
-  Blynk.run();
+  if(master){
+    Blynk.run();
+    // try to parse packet
+    int packetSize = LoRa.parsePacket();
+    if (packetSize) {
+      // received a packet
+      u8x8.drawString(0, 0, "Received packet:");
   
-  // try to parse packet
-  int packetSize = LoRa.parsePacket();
-  if (packetSize) {
-    // received a packet
-    Serial.print("Received packet '");
-    u8x8.drawString(0, 4, "PacketID");
-
-    // read packet
-    while (LoRa.available()) {
-      receivedText = (char)LoRa.read();
+      // read packet
+      receivedText = LoRa.readString();
+      receivedText.toCharArray(stringinfo, BUFFERLENGHT);
       Serial.print(receivedText);
-      char currentid[64];
-      receivedText.toCharArray(currentid, 64);
-      u8x8.drawString(9, 4, currentid);
-      blynkLCD.print(0, 0, receivedText);
+
+      //parse msg
+      receivedText.toCharArray(stringinfo, BUFFERLENGHT);
+      char *part;
+      char received_chipid[10];
+      float received_lon;
+      float received_lat;
+      part = strtok (stringinfo,",");
+      sprintf(received_chipid, "%s", part);
+      part = strtok (NULL, ",");
+      received_lon = atof(part);
+      part = strtok (NULL, ",");
+      received_lat = atof(part);
+
+      //send to monitor
+      sprintf (stringinfo, "Rlon: %f", received_lon);
+      u8x8.drawString(0, 1, stringinfo);
+      sprintf (stringinfo, "Rlat: %f", received_lat);
+      u8x8.drawString(0, 2, stringinfo);
+      sprintf (stringinfo, "RID: %s", received_chipid);
+      u8x8.drawString(0, 3, stringinfo);
+
+      //send to pc
+      sprintf (stringinfo, "ID: %s, lon: %f, lat: %f", received_chipid, received_lon, received_lat);
+      Serial.println(stringinfo);
+
+      counter++;
+      sprintf (stringinfo, "Ctr: %d", counter);
+      u8x8.drawString(0, 5, stringinfo);
+
+      //Send to blynk
+      //blynkLCD.print(0, 0, );
+    } 
+  }else{
+    while (gps.available(SerialGPS)){
+      currentFix = gps.read();
+      sprintf (stringinfo, "lon: %f, lat: %f, spd: %f", currentFix.longitude(), currentFix.latitude(), currentFix.speed());
+      Serial.println(stringinfo);
+      sprintf (stringinfo, "lon: %f", currentFix.longitude());
+      u8x8.drawString(0, 0, stringinfo);
+      sprintf (stringinfo, "lat: %f", currentFix.latitude());
+      u8x8.drawString(0, 1, stringinfo);
+      sprintf (stringinfo, "spd: %f", currentFix.speed());
+      u8x8.drawString(0, 2, stringinfo);
+
+      //send lora packet to master node
+      sprintf (lorabuffer, "%s,%f,%f",chipid, currentFix.longitude(), currentFix.latitude());
+      LoRa.beginPacket();
+      LoRa.print(lorabuffer);
+      LoRa.endPacket();
+      Serial.println(chipid);
+      u8x8.drawString(0, 3, chipid);
+      
+      counter++;
+      sprintf (stringinfo, "Ctr: %d", counter);
+      u8x8.drawString(0, 5, stringinfo);
     }
-
-    // print RSSI of packet
-    Serial.print("' with RSSI ");
-    Serial.println(LoRa.packetRssi());
-    u8x8.drawString(0, 5, "PacketRS");
-    receivedRssi = LoRa.packetRssi();
-    char currentrs[64];
-    receivedRssi.toCharArray(currentrs, 64);
-    u8x8.drawString(9, 5, currentrs);
   }
-
-  while (gps.available(SerialGPS)){
-    currentFix = gps.read();
-    sprintf (stringinfo, "long: %c, lat: %c, spd: %d", currentFix.longitude(), currentFix.latitude(), currentFix.speed());currentFix.speed();
-    Serial.println(stringinfo);
-  }
-
   
 }
