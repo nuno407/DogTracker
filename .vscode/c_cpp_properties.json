@@ -1,0 +1,30 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "/home/nuno/Arduino/hardware/espressif/esp32/cores/esp32",
+                "/home/nuno/Arduino/libraries/U8g2/src",
+                "/home/nuno/Documents/arduino-1.8.5/hardware/arduino/avr/libraries/SPI/src",
+                "/home/nuno/Arduino/libraries/NeoGPS/src",
+                "/home/nuno/Arduino/libraries/LoRa/src",
+                "/home/nuno/Documents/arduino-1.8.5/hardware/tools/avr/lib/gcc/avr/4.9.2/include",
+                "/home/nuno/Arduino/libraries/blynk-library-master/src",
+                "/home/nuno/Arduino/hardware/espressif/esp32/libraries/BLE/src",
+                "/home/nuno/Arduino/hardware/espressif/esp32/tools/sdk/include/config",
+                "/home/nuno/Arduino/hardware/espressif/esp32/tools/sdk/include/freertos"
+            ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": false,
+                "path": [
+                    "/home/nuno/Arduino/hardware/espressif/esp32/cores/esp32",
+                    "/home/nuno/Arduino/libraries/",
+                    "/home/nuno/Arduino/",
+                    "/home/nuno/Documents/arduino-1.8.5"
+                ]
+            },
+            "intelliSenseMode": "clang-x64"
+        }
+    ],
+    "version": 3
+}
