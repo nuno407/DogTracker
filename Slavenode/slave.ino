@@ -80,7 +80,12 @@ void setup() {
   //17 rx 2 tx
   SerialGPS.begin(9600, SERIAL_8N1, 17, 2, false);
   //trying to connect to gps module
+  u8x8.drawString(0, 0, "Waiting for GPS");
+  u8x8.drawString(0, 3, "............");
   while (!SerialGPS);
+  while (!gps.available(SerialGPS));
+
+  u8x8.clear();
   
   //init PC communication
   Serial.begin(115200);
@@ -88,7 +93,7 @@ void setup() {
 
   delay(500);
 
-  u8x8.drawString(0, 0, "VictoryTracker");
+  u8x8.drawString(0, 0, "VictoriaTracker");
   u8x8.drawString(0, 3, "An hunter dog...");
   u8x8.drawString(0, 6, "SLAVE NODE");
 
