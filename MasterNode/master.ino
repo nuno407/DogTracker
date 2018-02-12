@@ -93,7 +93,7 @@ void setup() {
 
   delay(500);
 
-  u8x8.drawString(0, 0, "VictoryTracker");
+  u8x8.drawString(0, 0, "VictoriaTracker");
   u8x8.drawString(0, 3, "An hunter dog...");
   u8x8.drawString(0, 6, "MASTER NODE");
 

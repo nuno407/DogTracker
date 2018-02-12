@@ -45,7 +45,7 @@ Global variables
 
 //GPS
 //Communication
-HardwareSerial SerialGPS(1);
+HardwareSerial SerialGPS(1); //Note that in order to correctly function with the Heltec ESP32 WIFI LoRa 32 dev board the UART1 ports were changed! 
 //GPS Module
 NMEAGPS gps;
 //Current gps fix
