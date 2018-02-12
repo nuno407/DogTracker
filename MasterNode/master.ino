@@ -53,7 +53,7 @@ Global variables
 char auth[] = "6e21948c963a422293d7b1c2fc4b2f2a";
 
 //Blynk lcd
-WidgetLCD blynkLCD(V0);
+WidgetMap PhoneMap(V1);
 
 //count receive messages
 int counter = 0;
@@ -162,11 +162,11 @@ void loop() {
         u8x8.drawString(0, 5, stringinfo);
   
         //Send to blynk
-        //blynkLCD.print(0, 0, );
+        PhoneMap.location(1, received_lat, received_lon, "Vitoria");
       
       }else{
         u8x8.clear();
-        u8x8.drawString(0, 0, "ERROR in rcv msg!!!");
+        u8x8.drawString(0, 0, "ERRORinrcvmsg!!!");
       }
     } 
 }
